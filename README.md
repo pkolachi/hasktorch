@@ -1,6 +1,7 @@
 # hasktorch
 
-[![Build Status](https://circleci.com/gh/hasktorch/hasktorch/tree/master.svg?style=shield&circle-token=9455d7cc953a58204f4d8dd683e9fa03fd5b2744)](https://circleci.com/gh/hasktorch/hasktorch/tree/master)
+[![Stable Status](https://circleci.com/gh/hasktorch/hasktorch/tree/master.svg?style=shield&circle-token=9455d7cc953a58204f4d8dd683e9fa03fd5b2744)](https://circleci.com/gh/hasktorch/hasktorch/tree/master)
+[![Development Status](https://circleci.com/gh/hasktorch/hasktorch/tree/dev.svg?style=shield&circle-token=9455d7cc953a58204f4d8dd683e9fa03fd5b2744)](https://circleci.com/gh/hasktorch/hasktorch/tree/dev)
 
 Hasktorch is a library for tensors and neural networks in Haskell. It is an independent open source community project which leverages the core C libraries shared by [Torch](http://torch.ch/) and [PyTorch](http://pytorch.org/). This library leverages cabal new-build and [backpack][backpack].
 
@@ -14,19 +15,14 @@ In order of high-to-low level. The reverse order can also be seen in the `cabal.
 
 | Directory                   | Description |
 | --------------------------- | ----------- |
-| [`examples/`][examples]     | Examples of basic usage and experimental prototypes from a simple `hasktorch-core` dependency |
-| [`core/`][core]             | Reexports of all typeclasses (see `classes/`) and instances (see `indef/`) |
-| [`dimensions/`][dimensions] | Reexports and helpers of the `dimensions` library |
-| [`classes/`][classes]       | Typeclasses and helpers which consist of a user-friendly Haskell API |
+| [`examples/`][examples]     | Examples of basic usage and experimental prototypes |
+| [`hasktorch/`][hasktorch]   | Reexports of the high-level interface to basic tensor creation and math operations and manages allocation/deallocation via foreign pointers |
 | [`indef/`][indef]           | Orphan instances of the above typeclasses for the relevant backpack signatures |
 | [`signatures/`][signatures] | Backpack signatures which line up with the generated C-FFI |
 | [`types/`][types]           | Memory-managed tensors and core data types that satisfy global and type-specific backpack types |
-| [`raw/`][raw]               | Comprehensive raw bindings to C operations (TH, THNN, THC, THCUNN) |
-| [`codegen/`][codegen]       | Code generation to produce low-level raw Haskell bindings |
-| [`output/`][output]         | Staging directory for `codegen/` output, contents should not be under source control |
-| [`vendor/`][vendor]         | 3rd party dependencies as git submodules (links to ATen and, possibly, other libraries) |
+| [`zoo/`][zoo]               | Beginnings of a model zoo |
 
-## Build Instructions 
+## Build Instructions
 
 Currently hasktorch only supports OSX and Linux builds because these are what the development team works on -- if you would like to add *BSD or Windows support, please let us know!
 
@@ -39,11 +35,18 @@ Following this, you will need cabal-install > 2.0 for `new-build` and backpack s
 [cabal-latest]:https://github.com/haskell/cabal/tree/30d0c10349b6cc69adebfe06c230c784574ebf7a
 [stack-backpack]:https://github.com/commercialhaskell/stack/issues/2540
 
-Ensure that libATen.so is on your library path. This can be done by sourcing the `setenv` file or configuring cabal from `~/.cabal/config`. Now you can build hasktorch:
+Now you can build hasktorch:
 
 ```
 cabal new-build all
 cabal new-run static-tensor-usage
+```
+
+To build without GPU support/CUDA, use:
+
+```
+cabal new-build all --flags=-cuda
+cabal new-run static-tensor-usage --flags=-cuda
 ```
 
 For more development tips, see [DEVELOPERS.md][developers] and review the [`vendor/`][vendor] readme for details on external dependencies.
@@ -98,14 +101,9 @@ as well as to the Torch and PyTorch dev teams.
 <!-- project directory links -->
 [developers]: ./DEVELOPERS.md
 [makefile]: ./Makefile
-[codegen]: ./codegen/
 [types]: ./types/
 [signatures]: ./signatures/
-[core]: ./core/
+[hasktorch]: ./hasktorch/
 [examples]: ./examples/
-[output]: ./output/
-[raw]: ./raw/
-[vendor]: ./vendor/
-[classes]: ./classes/
-[dimensions]: ./dimensions/
 [indef]: ./indef/
+[zoo]: ./zoo/

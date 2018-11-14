@@ -21,6 +21,7 @@
 module Torch.Indef.Mask
   ( newMask
   , newMaskDyn
+  , newMaskDyn'
   , withMask
   , allOf
   ) where
@@ -49,8 +50,7 @@ newMask = byteAsStatic $ newMaskDyn (dims :: Dims d)
 
 -- | build a new dynamic mask tensor with any known Nat list.
 newMaskDyn :: Dims (d::[Nat]) -> MaskDynamic
-newMaskDyn d = unsafeDupablePerformIO $ do
-  s <- Sig.newCState
+newMaskDyn d = unsafeDupablePerformIO $ withForeignPtr Sig.torchstate $ \s -> do
   bytePtr <- case fromIntegral <$> listDims d of
     []           -> MaskSig.c_newWithSize1d s 1
     [x]          -> MaskSig.c_newWithSize1d s x
@@ -59,9 +59,11 @@ newMaskDyn d = unsafeDupablePerformIO $ do
     [x, y, z, q] -> MaskSig.c_newWithSize4d s x y z q
     _ -> error "FIXME: can't build masks of this size yet"
 
-  byteDynamic
-    <$> Sig.manageState s
-    <*> newForeignPtrEnv MaskSig.p_free s bytePtr
+  byteDynamic Sig.torchstate
+    <$> newForeignPtrEnv MaskSig.p_free s bytePtr
+
+newMaskDyn' :: SomeDims -> MaskDynamic
+newMaskDyn' (SomeDims d) = newMaskDyn d
 
 -- | run a function with access to a dynamic index tensor's raw c-pointer.
 withMask :: MaskDynamic -> (Ptr CMaskTensor -> IO x) -> IO x
@@ -73,7 +75,7 @@ class IsMask t where
   -- anyOf :: t -> Bool
 
 instance IsMask MaskDynamic where
-  allOf t = unsafeDupablePerformIO $ flip X.with pure $ do
+  allOf t = unsafePerformIO $ flip X.with pure $ do
     s' <- managed $ withForeignPtr s
     t' <- managed $ withForeignPtr fp
 

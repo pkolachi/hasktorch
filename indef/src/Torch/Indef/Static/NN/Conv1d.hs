@@ -10,14 +10,21 @@
 -- Temporal (1D) Convolutions
 -------------------------------------------------------------------------------
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE NoStarIsType #-}
+#endif
+
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
+{-# OPTIONS_GHC -fno-cse #-}
 module Torch.Indef.Static.NN.Conv1d
   ( Conv1d(..)
   , weights
@@ -241,9 +248,10 @@ conv1d_updGradParamsBatch = _conv1d_updGradParams
 -- * helper functions
 
 -- | forward pass without locking down the tensor dimensions
+{-# NOINLINE _conv1d_forward #-}
 _conv1d_forward :: All KnownDim '[f,kW,dW,o] => Conv1d f o kW dW -> Tensor d -> IO (Tensor d')
 _conv1d_forward conv inp = do
-  out <- empty
+  let out = empty
   Dynamic._temporalConvolution_updateOutput
     (asDynamic inp) (asDynamic out)
     (asDynamic (weights conv)) (asDynamic (bias conv))
@@ -252,6 +260,7 @@ _conv1d_forward conv inp = do
   pure out
 
 -- | backward pass, computing the gradient input, without locking down the tensor dimensions
+{-# NOINLINE _conv1d_backwardGradInput #-}
 _conv1d_backwardGradInput
   :: forall f o kW dW inputDim goutDim
   .  All KnownDim '[f,kW,dW,o]
@@ -261,13 +270,14 @@ _conv1d_backwardGradInput
   -> Tensor goutDim
   -> IO (Tensor inputDim)
 _conv1d_backwardGradInput conv input gradOut = do
-  gradIn <- empty
+  let gradIn = empty
   Dynamic._temporalConvolution_updateGradInput
     (asDynamic input)  (asDynamic gradOut)
     (asDynamic gradIn) (asDynamic (weights conv))
     (kernelWidth conv) (stepSize conv)
   pure gradIn
 
+{-# NOINLINE _conv1d_updGradParams #-}
 -- | backward pass, computing the weight updates, without locking down the tensor dimensions
 _conv1d_updGradParams
   :: forall f o kW dW inputDim gOutDim
